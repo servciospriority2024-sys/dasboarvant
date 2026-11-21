@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consulta de Facturas Vanti</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #f97316;
+      --accent-hover: #ea580c;
+      --ok-bg: rgba(16, 185, 129, 0.14);
+      --ok-border: #10b981;
+      --ok-text: #6ee7b7;
+      --warn-bg: rgba(245, 158, 11, 0.14);
+      --warn-border: #f59e0b;
+      --warn-text: #fcd34d;
+      --err-bg: rgba(239, 68, 68, 0.14);
+      --err-border: #ef4444;
+      --err-text: #fca5a5;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #1e293b 0%, var(--bg) 65%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .badge {
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .badge.online {
+      color: var(--ok-text);
+      border-color: var(--ok-border);
+    }
+
+    .badge.offline {
+      color: var(--err-text);
+      border-color: var(--err-border);
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: var(--text);
+      font-size: 0.98rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    button {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      margin-top: 6px;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .result {
+      margin-top: 22px;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: none;
+      line-height: 1.5;
+    }
+
+    .result.ok {
+      display: block;
+      background: var(--ok-bg);
+      border-color: var(--ok-border);
+    }
+
+    .result.warn {
+      display: block;
+      background: var(--warn-bg);
+      border-color: var(--warn-border);
+    }
+
+    .result.err {
+      display: block;
+      background: var(--err-bg);
+      border-color: var(--err-border);
+    }
+
+    .result-title {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .result.ok .result-title { color: var(--ok-text); }
+    .result.warn .result-title { color: var(--warn-text); }
+    .result.err .result-title { color: var(--err-text); }
+
+    .amount {
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin: 6px 0 10px;
+    }
+
+    .meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .meta strong {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="header">
+      <h1>Consulta Factura Vanti</h1>
+      <span id="apiStatus" class="badge">Verificando API...</span>
+    </div>
+
+    <form id="consultaForm">
+      <div class="field">
+        <label for="apiBase">URL del Servidor API (VPS)</label>
+        <input
+          type="url"
+          id="apiBase"
+          placeholder="https://tu-dominio-o-ip:8088"
+          required
+        />
+        <div class="hint">Se guarda automáticamente en este navegador.</div>
+      </div>
+
+      <div class="field">
+        <label for="ref">Cuenta Contrato o Referencia de Pago</label>
+        <input
+          type="text"
+          id="ref"
+          inputmode="numeric"
+          pattern="[0-9]{6,}"
+          placeholder="Ej: 60694487"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label for="project">Empresa (opcional)</label>
+        <select id="project">
+          <option value="">Buscar en todas las empresas</option>
+          <option value="79">79 - Vanti S.A. E.S.P.</option>
+          <option value="80">80 - Gas Natural Cundiboyacense</option>
+          <option value="81">81 - Gas Natural del Cesar (Nacer)</option>
+          <option value="82">82 - Gas Natural del Oriente</option>
+          <option value="84">84 - Vanti Soluciones</option>
+        </select>
+      </div>
+
+      <button type="submit" id="submitBtn">Consultar Factura</button>
+    </form>
+
+    <section id="resultBox" class="result" aria-live="polite"></section>
+  </main>
+
+  <script>
+    const apiBaseInput = document.getElementById("apiBase");
+    const apiStatus = document.getElementById("apiStatus");
+    const form = document.getElementById("consultaForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const resultBox = document.getElementById("resultBox");
+
+    // Cambia esta URL por la de tu VPS si quieres dejarla fija por defecto     
+    const DEFAULT_API_URL = "vanti-api-railway-production.up.railway.app";
+
+    apiBaseInput.value = localStorage.getItem("vanti_api_url") || DEFAULT_API_URL;
+
+    function getCleanBaseUrl() {
+      return apiBaseInput.value.trim().replace(/\/+$/, "");
+    }
+
+    async function checkHealth() {
+      const base = getCleanBaseUrl();
+      if (!base || base.includes("TU_IP_VPS")) {
+        apiStatus.textContent = "Configura tu URL";
+        apiStatus.className = "badge";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(5000) });
+        const data = await res.json();
+        if (data.status === "ok") {
+          apiStatus.textContent = data.worker_ready ? "API Lista" : "API Iniciando...";
+          apiStatus.className = "badge online";
+        } else {
+          throw new Error("Estado inesperado");
+        }
+      } catch {
+        apiStatus.textContent = "Sin conexión";
+        apiStatus.className = "badge offline";
+      }
+    }
+
+    apiBaseInput.addEventListener("change", () => {
+      localStorage.setItem("vanti_api_url", getCleanBaseUrl());
+      checkHealth();
+    });
+
+    function renderResult(type, title, bodyHtml) {
+      resultBox.className = `result ${type}`;
+      resultBox.innerHTML = `<div class="result-title">${title}</div>${bodyHtml}`;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const base = getCleanBaseUrl();
+      const ref = document.getElementById("ref").value.trim();
+      const project = document.getElementById("project").value;
+
+      if (!/^[0-9]{6,}$/.test(ref)) {
+        renderResult("err", "Referencia inválida", "<div class='meta'>Ingresa solo números (mínimo 6 dígitos).</div>");
+        return;
+      }
+
+      localStorage.setItem("vanti_api_url", base);
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Consultando en Vanti...";
+      resultBox.className = "result";
+
+      const params = new URLSearchParams({ ref });
+      if (project) params.set("project", project);
+
+      try {
+        const res = await fetch(`${base}/api/vanti?${params.toString()}`, {
+          signal: AbortSignal.timeout(50000)
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          renderResult("err", "Error de validación", `<div class="meta">${data.detail || "Petición inválida"}</div>`);
+          return;
+        }
+
+        if (data.ok) {
+          renderResult(
+            "ok",
+            "Factura pendiente encontrada",
+            `
+              <div class="amount">${data.texto || "$0"}</div>
+              <div class="meta">
+                <div><strong>Referencia:</strong> ${data.referencia}</div>
+                <div><strong>Empresa:</strong> ${data.empresa || "N/A"}</div>
+                <div><strong>Medio:</strong> ${data.oficina || "PSE"}</div>
+                <div><strong>Tiempo:</strong> ${data.segundos ?? "-"}s</div>
+              </div>
+            `
+          );
+        } else if (data.valor === 0) {
+          renderResult(
+            "warn",
+            "Factura al día ($0)",
+            `
+              <div class="meta">
+                <div>${data.mensaje}</div>
+                <div><strong>Referencia:</strong> ${data.referencia}</div>
+                <div><strong>Empresa:</strong> ${data.empresa || "N/A"}</div>
+                <div><strong>Tiempo:</strong> ${data.segundos ?? "-"}s</div>
+              </div>
+            `
+          );
+        } else {
+          renderResult(
+            "err",
+            "Sin resultados",
+            `
+              <div class="meta">
+                <div>${data.mensaje || "No se encontró información para esta referencia."}</div>
+                <div><strong>Referencia:</strong> ${data.referencia}</div>
+                <div><strong>Tiempo:</strong> ${data.segundos ?? "-"}s</div>
+              </div>
+            `
+          );
+        }
+      } catch (err) {
+        const mixedContentHint =
+          window.location.protocol === "https:" && base.startsWith("http://")
+            ? "<br><br><strong>Nota HTTPS:</strong> Netlify carga por HTTPS y tu API está en HTTP. Usa un subdominio con SSL (HTTPS) en tu VPS."
+            : "";
+
+        renderResult(
+          "err",
+          "No se pudo conectar con la API",
+          `<div class="meta">Verifica que el servidor esté encendido y accesible (${err.message}).${mixedContentHint}</div>`
+        );
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Consultar Factura";
+      }
+    });
+
+    checkHealth();
+  </script>
+</body>
+</html>
